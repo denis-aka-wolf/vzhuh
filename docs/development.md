@@ -28,24 +28,30 @@
 
 ```powershell
 flutter --version
-flutter pub get
-flutter run -d windows
+.\scripts\run-debug.ps1
 ```
 
-Статические проверки и тесты:
+Скрипт `scripts\run-debug.ps1` восстанавливает зависимости и запускает Windows-приложение в режиме debug. При необходимости можно запустить Flutter вручную:
+
+```powershell
+flutter pub get
+flutter run --debug -d windows
+```
+
+Перед выпуском соберите и упакуйте Windows Release:
+
+```powershell
+.\scripts\deploy-production.ps1
+```
+
+Скрипт проверяет анализатором и тестами проект, выполняет `flutter build windows --release`, затем копирует **весь** каталог `build\windows\x64\runner\Release` в уникальный каталог `out\Vzhuh-<версия>-<время>`. Результат включает исполняемый файл, Flutter runtime и assets. Не переносите только `vzhuh.exe`. Существующий каталог результата не перезаписывается; результаты в `out\` исключены из Git.
 
 ```powershell
 flutter analyze
 flutter test
 ```
 
-Сборка Windows в режиме релиза:
-
-```powershell
-flutter build windows --release
-```
-
-Эти команды относятся к UI-заготовке. Они не собирают и не устанавливают компонент управления станцией — такого компонента пока нет.
+Release-пакет всё ещё содержит текущий MVP: протокол соединения незашифрован и не аутентифицирует стороны. Слово «production» в имени скрипта означает release-конфигурацию сборки, а не готовность к безопасному продуктивному или интернет-развёртыванию. Используйте её только в изолированной тестовой сети.
 
 ## Рекомендуемый порядок разработки
 

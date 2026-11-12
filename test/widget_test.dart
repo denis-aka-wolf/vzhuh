@@ -9,11 +9,11 @@ void main() {
 
     expect(find.text('Вжух'), findsOneWidget);
     expect(find.text('Ожидать подключения'), findsOneWidget);
-    expect(find.text('Подключиться к ПК'), findsOneWidget);
+    expect(find.text('Подключить второй экземпляр'), findsOneWidget);
     expect(
       find.text(
-        'Предварительная версия: соединение не шифруется и '
-        'не использует аутентификацию. Только тестовая локальная сеть.',
+        'Демо только на этом ПК (127.0.0.1). Соединение не шифруется '
+        'и не проверяет личность. Экран и ввод не передаются.',
       ),
       findsOneWidget,
     );

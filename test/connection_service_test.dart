@@ -5,21 +5,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vzhuh/connection_service.dart';
 
 void main() {
-  group('LocalConnectionService address policy', () {
-    test('allows loopback and private IPv4 addresses only', () {
-      expect(LocalConnectionService.isAllowedAddress('127.0.0.1'), isTrue);
-      expect(LocalConnectionService.isAllowedAddress('10.2.3.4'), isTrue);
-      expect(LocalConnectionService.isAllowedAddress('172.16.0.1'), isTrue);
-      expect(LocalConnectionService.isAllowedAddress('172.31.255.254'), isTrue);
-      expect(LocalConnectionService.isAllowedAddress('192.168.1.20'), isTrue);
-
-      expect(LocalConnectionService.isAllowedAddress('172.32.0.1'), isFalse);
-      expect(LocalConnectionService.isAllowedAddress('8.8.8.8'), isFalse);
-      expect(LocalConnectionService.isAllowedAddress('2001:db8::1'), isFalse);
+  group('LocalConnectionService loopback policy', () {
+    test('allows only the IPv4 loopback address', () {
       expect(
-        LocalConnectionService.isAllowedAddress('not-an-address'),
+        LocalConnectionService.isLoopbackAddress('127.0.0.1'),
+        isTrue,
+      );
+      expect(LocalConnectionService.isLoopbackAddress('127.0.0.2'), isFalse);
+      expect(LocalConnectionService.isLoopbackAddress('10.2.3.4'), isFalse);
+      expect(LocalConnectionService.isLoopbackAddress('192.168.1.20'), isFalse);
+      expect(LocalConnectionService.isLoopbackAddress('8.8.8.8'), isFalse);
+      expect(LocalConnectionService.isLoopbackAddress('2001:db8::1'), isFalse);
+      expect(
+        LocalConnectionService.isLoopbackAddress('not-an-address'),
         isFalse,
       );
+    });
+
+    test('advertises only the loopback address', () async {
+      expect(
+        await LocalConnectionService.availableAddresses(),
+        [LocalConnectionService.loopbackAddress],
+      );
+    });
+
+    test('rejects non-loopback listen and connect addresses', () async {
+      final service = LocalConnectionService();
+      addTearDown(service.dispose);
+
+      await expectLater(
+        service.startListening('192.168.1.20', 52741),
+        throwsFormatException,
+      );
+      await expectLater(
+        service.connect('192.168.1.20', 52741),
+        throwsFormatException,
+      );
+      expect(service.isListening, isFalse);
+      expect(service.isConnecting, isFalse);
     });
   });
 
@@ -49,6 +72,7 @@ void main() {
 
     try {
       await receiver.startListening('127.0.0.1', port);
+      expect(receiver.listeningAddress, '127.0.0.1');
       final connection = connector.connect('127.0.0.1', port);
       await incomingRequest.future.timeout(const Duration(seconds: 5));
 

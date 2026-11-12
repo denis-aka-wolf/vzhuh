@@ -31,25 +31,19 @@ class ConnectionHomePage extends StatefulWidget {
 
 class _ConnectionHomePageState extends State<ConnectionHomePage> {
   final LocalConnectionService _service = LocalConnectionService();
+  final TextEditingController _remoteAddressController =
+      TextEditingController(text: LocalConnectionService.loopbackAddress);
   final TextEditingController _listenPortController = TextEditingController(
     text: '52741',
   );
-  final TextEditingController _remoteAddressController =
-      TextEditingController();
   final TextEditingController _remotePortController = TextEditingController(
     text: '52741',
   );
-
-  List<String> _localAddresses = const [];
-  String? _selectedListenAddress;
-  String? _addressLoadError;
-  bool _loadingAddresses = true;
 
   @override
   void initState() {
     super.initState();
     _service.addListener(_onServiceChanged);
-    _loadLocalAddresses();
   }
 
   @override
@@ -68,24 +62,6 @@ class _ConnectionHomePageState extends State<ConnectionHomePage> {
     }
   }
 
-  Future<void> _loadLocalAddresses() async {
-    try {
-      final addresses = await LocalConnectionService.availableAddresses();
-      if (!mounted) return;
-      setState(() {
-        _localAddresses = addresses;
-        _selectedListenAddress = addresses.isEmpty ? null : addresses.first;
-        _loadingAddresses = false;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _addressLoadError = error.toString();
-        _loadingAddresses = false;
-      });
-    }
-  }
-
   int? _readPort(TextEditingController controller) {
     final port = int.tryParse(controller.text.trim());
     if (port == null || port < 1 || port > 65535) {
@@ -96,10 +72,14 @@ class _ConnectionHomePageState extends State<ConnectionHomePage> {
   }
 
   Future<void> _startWaiting() async {
-    final address = _selectedListenAddress;
     final port = _readPort(_listenPortController);
-    if (address == null || port == null) return;
-    await _runAction(() => _service.startListening(address, port));
+    if (port == null) return;
+    await _runAction(
+      () => _service.startListening(
+        LocalConnectionService.loopbackAddress,
+        port,
+      ),
+    );
   }
 
   Future<void> _connect() async {
@@ -134,7 +114,10 @@ class _ConnectionHomePageState extends State<ConnectionHomePage> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Center(
-              child: Text('Локальная сеть', style: theme.textTheme.labelLarge),
+              child: Text(
+                'Демо на этом ПК',
+                style: theme.textTheme.labelLarge,
+              ),
             ),
           ),
         ],
@@ -146,14 +129,15 @@ class _ConnectionHomePageState extends State<ConnectionHomePage> {
             padding: const EdgeInsets.all(24),
             children: [
               Text(
-                'Подключение к компьютеру',
+                'Демонстрация подключения',
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Ожидайте входящий запрос или подключитесь к другому ПК в локальной сети.',
+                'Проверьте обмен запросом и подтверждением между двумя '
+                'экземплярами приложения на этом компьютере.',
                 style: theme.textTheme.bodyLarge,
               ),
               const SizedBox(height: 20),
@@ -216,71 +200,44 @@ class _ConnectionHomePageState extends State<ConnectionHomePage> {
               title: 'Ожидать подключения',
             ),
             const SizedBox(height: 16),
-            if (_loadingAddresses)
-              const LinearProgressIndicator()
-            else if (_addressLoadError != null)
-              Text('Не удалось получить адреса: $_addressLoadError')
-            else if (_localAddresses.isEmpty)
-              const Text(
-                'Не найден локальный IPv4-адрес. Подключитесь к частной сети '
-                'и обновите список.',
-              )
-            else ...[
-              DropdownButtonFormField<String>(
-                initialValue: _selectedListenAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Локальный адрес',
-                  border: OutlineInputBorder(),
-                ),
-                items: _localAddresses
-                    .map(
-                      (address) => DropdownMenuItem(
-                        value: address,
-                        child: Text(
-                          address == '127.0.0.1'
-                              ? '$address (только этот ПК)'
-                              : address,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: isListening
-                    ? null
-                    : (address) {
-                        setState(() => _selectedListenAddress = address);
-                      },
+            TextField(
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Адрес ожидания',
+                hintText: LocalConnectionService.loopbackAddress,
+                border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _listenPortController,
+              enabled: !isListening,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Порт',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: isListening
+                    ? () => _runAction(_service.stopListening)
+                    : (_service.isBusy ? null : _startWaiting),
+                icon: Icon(isListening ? Icons.stop : Icons.sensors),
+                label: Text(isListening ? 'Прекратить ожидание' : 'Начать'),
+              ),
+            ),
+            if (isListening) ...[
               const SizedBox(height: 12),
-              TextField(
-                controller: _listenPortController,
-                enabled: !isListening,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Порт',
-                  border: OutlineInputBorder(),
+              Text(
+                'Адрес для подключения: '
+                '${_service.listeningAddress}:${_service.listeningPort}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: isListening
-                      ? () => _runAction(_service.stopListening)
-                      : (_service.isBusy ? null : _startWaiting),
-                  icon: Icon(isListening ? Icons.stop : Icons.sensors),
-                  label: Text(isListening ? 'Прекратить ожидание' : 'Начать'),
-                ),
-              ),
-              if (isListening) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Адрес для подключения: '
-                  '${_service.listeningAddress}:${_service.listeningPort}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
             ],
           ],
         ),
@@ -300,16 +257,16 @@ class _ConnectionHomePageState extends State<ConnectionHomePage> {
           children: [
             const _SectionHeading(
               icon: Icons.computer,
-              title: 'Подключиться к ПК',
+              title: 'Подключить второй экземпляр',
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _remoteAddressController,
+              readOnly: true,
               enabled: enabled,
               keyboardType: TextInputType.url,
               decoration: const InputDecoration(
-                labelText: 'Локальный IPv4-адрес',
-                hintText: 'например, 192.168.1.25',
+                labelText: 'Адрес этого компьютера',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -342,8 +299,8 @@ class _ConnectionHomePageState extends State<ConnectionHomePage> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Подключение разрешено только к частному IPv4-адресу '
-              'или 127.0.0.1.',
+              'В демонстрационном режиме разрешён только 127.0.0.1. '
+              'Подключение с других устройств невозможно.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -501,8 +458,8 @@ class _SecurityNotice extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Предварительная версия: соединение не шифруется и '
-                'не использует аутентификацию. Только тестовая локальная сеть.',
+                'Демо только на этом ПК (127.0.0.1). Соединение не шифруется '
+                'и не проверяет личность. Экран и ввод не передаются.',
                 style: TextStyle(color: colors.onErrorContainer),
               ),
             ),

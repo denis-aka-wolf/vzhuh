@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class LocalConnectionService extends ChangeNotifier {
+  static const loopbackAddress = '127.0.0.1';
   static const _connectMessage = 'VZH1:CONNECT\n';
   static const _acceptMessage = 'VZH1:ACCEPT\n';
   static const _rejectMessage = 'VZH1:REJECT\n';
@@ -35,42 +36,11 @@ class LocalConnectionService extends ChangeNotifier {
   String? get connectedAddress => _activeSocket?.remoteAddress.address;
 
   static Future<List<String>> availableAddresses() async {
-    final interfaces = await NetworkInterface.list(
-      includeLoopback: true,
-      type: InternetAddressType.IPv4,
-    );
-    final addresses = <String>{};
-
-    for (final interface in interfaces) {
-      for (final address in interface.addresses) {
-        if (isAllowedAddress(address.address)) {
-          addresses.add(address.address);
-        }
-      }
-    }
-
-    final result = addresses.toList()
-      ..sort((left, right) {
-        if (left == '127.0.0.1') return 1;
-        if (right == '127.0.0.1') return -1;
-        return left.compareTo(right);
-      });
-    return result;
+    return [loopbackAddress];
   }
 
-  static bool isAllowedAddress(String value) {
-    final address = InternetAddress.tryParse(value);
-    if (address == null || address.type != InternetAddressType.IPv4) {
-      return false;
-    }
-
-    final octets = address.rawAddress;
-    final isLoopback = octets[0] == 127;
-    final isPrivate =
-        octets[0] == 10 ||
-        (octets[0] == 172 && octets[1] >= 16 && octets[1] <= 31) ||
-        (octets[0] == 192 && octets[1] == 168);
-    return isLoopback || isPrivate;
+  static bool isLoopbackAddress(String value) {
+    return value == loopbackAddress;
   }
 
   Future<void> startListening(String address, int port) async {
@@ -79,10 +49,7 @@ class LocalConnectionService extends ChangeNotifier {
       throw StateError('Сначала завершите текущее ожидание или соединение.');
     }
 
-    final server = await ServerSocket.bind(
-      InternetAddress.tryParse(address)!,
-      port,
-    );
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, port);
     _server = server;
     _serverSubscription = server.listen(
       _handleIncoming,
@@ -268,7 +235,7 @@ class LocalConnectionService extends ChangeNotifier {
   }
 
   void _handleIncoming(Socket socket) {
-    if (!isAllowedAddress(socket.remoteAddress.address) ||
+    if (!isLoopbackAddress(socket.remoteAddress.address) ||
         _pendingSocket != null ||
         _activeSocket != null) {
       socket.destroy();
@@ -355,9 +322,9 @@ class LocalConnectionService extends ChangeNotifier {
   }
 
   void _validateEndpoint(String address, int port) {
-    if (!isAllowedAddress(address)) {
+    if (!isLoopbackAddress(address)) {
       throw const FormatException(
-        'Разрешены только частные IPv4-адреса и 127.0.0.1.',
+        'В демонстрационном режиме разрешён только адрес 127.0.0.1.',
       );
     }
     if (port < 1 || port > 65535) {

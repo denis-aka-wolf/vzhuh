@@ -7,10 +7,7 @@ import 'package:vzhuh/connection_service.dart';
 void main() {
   group('LocalConnectionService loopback policy', () {
     test('allows only the IPv4 loopback address', () {
-      expect(
-        LocalConnectionService.isLoopbackAddress('127.0.0.1'),
-        isTrue,
-      );
+      expect(LocalConnectionService.isLoopbackAddress('127.0.0.1'), isTrue);
       expect(LocalConnectionService.isLoopbackAddress('127.0.0.2'), isFalse);
       expect(LocalConnectionService.isLoopbackAddress('10.2.3.4'), isFalse);
       expect(LocalConnectionService.isLoopbackAddress('192.168.1.20'), isFalse);
@@ -19,13 +16,6 @@ void main() {
       expect(
         LocalConnectionService.isLoopbackAddress('not-an-address'),
         isFalse,
-      );
-    });
-
-    test('advertises only the loopback address', () async {
-      expect(
-        await LocalConnectionService.availableAddresses(),
-        [LocalConnectionService.loopbackAddress],
       );
     });
 

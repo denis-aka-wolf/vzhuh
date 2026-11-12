@@ -35,10 +35,6 @@ class LocalConnectionService extends ChangeNotifier {
   String? get pendingAddress => _pendingSocket?.remoteAddress.address;
   String? get connectedAddress => _activeSocket?.remoteAddress.address;
 
-  static Future<List<String>> availableAddresses() async {
-    return [loopbackAddress];
-  }
-
   static bool isLoopbackAddress(String value) {
     return value == loopbackAddress;
   }

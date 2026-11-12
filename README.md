@@ -1,17 +1,42 @@
-# vzhuh
+# Вжух (Vzhuh)
 
-A new Flutter project.
+**Вжух** — проект с открытым исходным кодом для удалённого администрирования рабочих станций Windows. Цель проекта — подключать устройства напрямую, без обязательного облачного сервиса или стороннего узла-посредника: по локальной сети или по внешнему адресу `IP:порт`.
 
-## Getting Started
+Для будущих подключений предусматриваются варианты аутентификации: учётная запись приложения, учётная запись Windows и дополнительная двухфакторная проверка через SMS, электронную почту или Telegram-бота.
 
-This project is a starting point for a Flutter application.
+> **Состояние проекта:** сейчас репозиторий содержит начальный шаблон Flutter-приложения. Удалённое управление, серверная часть, сетевой протокол и перечисленные способы аутентификации пока не реализованы. Этот README и документы в [`docs/`](docs/README.md) описывают цели и проектируемые требования, а не готовые возможности.
 
-A few resources to get you started if this is your first Flutter project:
+## Документация
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- [Навигация по документации](docs/README.md)
+- [Назначение и требования](docs/product.md)
+- [Целевая архитектура](docs/architecture.md)
+- [Безопасность](docs/security.md)
+- [Сеть и эксплуатация](docs/operations.md)
+- [Разработка и текущее состояние](docs/development.md)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Текущая основа
+
+Клиентская оболочка написана на Flutter/Dart. В репозитории есть платформенные проекты Flutter для Windows, Android, iOS, Linux, macOS и Web, но наличие шаблонов не означает, что продукт поддерживает эти платформы. Целевая управляемая станция — Windows; состав платформ для операторского приложения ещё предстоит определить.
+
+## Запуск шаблона
+
+Требуется установленный Flutter SDK. Из корня репозитория:
+
+```powershell
+flutter pub get
+flutter run -d windows
+```
+
+Для проверки:
+
+```powershell
+flutter analyze
+flutter test
+```
+
+Эти команды запускают и проверяют только текущую Flutter-заготовку. Инструкции по разработке и сборке — в [docs/development.md](docs/development.md).
+
+## Важное замечание о подключении
+
+Не открывайте порт приложения в интернет и не используйте шаблон как средство удалённого доступа к реальным устройствам. Пока отсутствуют проверенная аутентификация, шифрование, авторизация команд, журналирование и защита от перебора. Будущая настройка прямого внешнего подключения должна следовать [требованиям безопасности](docs/security.md) и [руководству по эксплуатации](docs/operations.md).
